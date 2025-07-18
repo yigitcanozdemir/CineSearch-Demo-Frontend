@@ -2,10 +2,9 @@
 
 import type React from "react"
 import { createPortal } from "react-dom"
-import { useState, createContext, useContext,useRef,useEffect } from "react"
+import { useState, createContext, useContext, useRef, useEffect } from "react"
 import {
   Search,
-  Send,
   Star,
   Calendar,
   Clock,
@@ -21,13 +20,14 @@ import {
   HelpCircle,
   PanelLeftClose,
   Menu,
-  ArrowUp
+  ArrowUp,
 } from "lucide-react"
 
 const themes = {
   dark: {
     name: "Dark",
     primary: "bg-black",
+    primaryColorValue: "#000000",
     secondary: "bg-gray-900",
     tertiary: "bg-gray-800",
     accent: "bg-red-600",
@@ -49,6 +49,7 @@ const themes = {
   light: {
     name: "Light",
     primary: "bg-white",
+    primaryColorValue: "#00000099",
     secondary: "bg-gray-50",
     tertiary: "bg-gray-100",
     accent: "bg-blue-600",
@@ -102,7 +103,7 @@ function Tooltip({
     if (isVisible && targetRef.current && tooltipRef.current) {
       const targetRect = targetRef.current.getBoundingClientRect()
       const tooltipRect = tooltipRef.current.getBoundingClientRect()
-      const spacing = 8 
+      const spacing = 8
 
       let top = 0
       let left = 0
@@ -178,45 +179,44 @@ function Tooltip({
   )
 }
 
-
 const createScrollbarStyles = (theme: typeof themes.dark) => `
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: ${theme.scrollbar.track};
-    border-radius: 3px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: ${theme.scrollbar.thumb};
-    border-radius: 3px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: ${theme.scrollbar.thumbHover};
-  }
-  .custom-scrollbar-main::-webkit-scrollbar {
-    width: 8px;
-  }
-  .custom-scrollbar-main::-webkit-scrollbar-track {
-    background: ${theme.scrollbar.track};
-    border-radius: 4px;
-  }
-  .custom-scrollbar-main::-webkit-scrollbar-thumb {
-    background: ${theme.scrollbar.thumb};
-    border-radius: 4px;
-  }
-  .custom-scrollbar-main::-webkit-scrollbar-thumb:hover {
-    background: ${theme.scrollbar.thumbHover};
-  }
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: ${theme.scrollbar.track};
+  border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: ${theme.scrollbar.thumb};
+  border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: ${theme.scrollbar.thumbHover};
+}
+.custom-scrollbar-main::-webkit-scrollbar {
+  width: 8px;
+}
+.custom-scrollbar-main::-webkit-scrollbar-track {
+  background: ${theme.scrollbar.track};
+  border-radius: 4px;
+}
+.custom-scrollbar-main::-webkit-scrollbar-thumb {
+  background: ${theme.scrollbar.thumb};
+  border-radius: 4px;
+}
+.custom-scrollbar-main::-webkit-scrollbar-thumb:hover {
+  background: ${theme.scrollbar.thumbHover};
+}
 
-  @keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
-  }
-  
-  .animate-in {
-    animation: fadeIn 0.2s ease-out;
-  }
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-in {
+  animation: fadeIn 0.2s ease-out;
+}
 `
 
 interface Movie {
@@ -723,9 +723,7 @@ function SessionItem({
   return (
     <div
       className={`group relative p-3 rounded-lg cursor-pointer border transition-colors duration-300 ${
-        isActive
-          ? `${currentTheme.tertiary} ${currentTheme.border}`
-          : `${currentTheme.hover} border-transparent`
+        isActive ? `${currentTheme.tertiary} ${currentTheme.border}` : `${currentTheme.hover} border-transparent`
       }`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
@@ -852,7 +850,7 @@ export default function MovieRecommendationApp() {
 
   const generateSessionTitle = (query: string): string => {
     const words = query.trim().split(" ")
-    if (words.length <= 4) {
+    if (words.length <= 15) {
       return query
     }
     return words.slice(0, 4).join(" ") + "..."
@@ -1025,47 +1023,48 @@ export default function MovieRecommendationApp() {
           )}
 
           {/* Movies grid */}
-          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar-main">
-            <div className="mx-auto">
-              {loading ? (
-                <div className="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center pointer-events-none">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mb-4"></div>
-                  <span className={currentTheme.textMuted}>Getting recommendations...</span>
-                </div>
-              ) : movies.length > 0 ? (
-                <div className="grid grid-cols-10 gap-4">
-                  {movies.slice(0, 40).map((movie) => (
-                    <MovieCard key={movie.id} movie={movie} />
-                  ))}
-                </div>
-              ) : (
-                <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center pointer-events-none transition-all duration-300">
-                  <div
-                    className={`flex flex-col items-center text-center px-4 transform transition-all duration-300 ${containerClasses}`}
-                  >
-                    <div className="mb-8 opacity-50 flex items-center justify-center transition-all duration-300">
-                      <Search size={80} className={currentTheme.textMuted} />
-                    </div>
-                    <h1 className={`text-4xl font-light ${currentTheme.text} mb-4 transition-all duration-300`}>
-                      What you looking for?
-                    </h1>
-                    <p className={`text-lg ${currentTheme.textMuted} transition-all duration-300 max-w-md`}>
-                      Discover your next favorite movie or TV show with AI-powered recommendations
-                    </p>
+          <div className="relative flex-1 overflow-hidden">
+            <div className="h-full overflow-y-auto p-6 custom-scrollbar-main pb-[120px]">
+              <div className="mx-auto">
+                {loading ? (
+                  <div className="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center pointer-events-none">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mb-4"></div>
+                    <span className={currentTheme.textMuted}>Getting recommendations...</span>
                   </div>
-                </div>
-              )}
+                ) : movies.length > 0 ? (
+                  <div className="grid grid-cols-10 gap-4">
+                    {movies.slice(0, 40).map((movie) => (
+                      <MovieCard key={movie.id} movie={movie} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center pointer-events-none transition-all duration-300">
+                    <div
+                      className={`flex flex-col items-center text-center px-4 transform transition-all duration-300 ${containerClasses}`}
+                    >
+                      <div className="mb-8 opacity-50 flex items-center justify-center transition-all duration-300">
+                        <Search size={80} className={currentTheme.textMuted} />
+                      </div>
+                      <h1 className={`text-4xl font-light ${currentTheme.text} mb-4 transition-all duration-300`}>
+                        What you looking for?
+                      </h1>
+                      <p className={`text-lg ${currentTheme.textMuted} transition-all duration-300 max-w-md`}>
+                        Discover your next favorite movie or TV show with AI-powered recommendations
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-
             {/* Fade overlay */}
             <div
-              className="absolute bottom-0 left-0 right-0 h-48 pointer-events-none"
-              style={{ background: `linear-gradient(to top, ${currentTheme.primary} 0%, transparent 100%)` }}
+              className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none"
+              style={{ background: `linear-gradient(to top, ${currentTheme.primaryColorValue} 0%, transparent 100%)` }}
             />
+          </div>
 
           {/* Chat input */}
-          <div className="absolute bottom-2 left-20 right-0 p-4">
+          <div className="absolute bottom-2 left-20 right-0 p-4 z-10">
             <div className={`mx-auto px-4 transform transition-all duration-300 ${containerClasses}`}>
               <div className="relative flex-1">
                 <Search className={`absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 ${currentTheme.textMuted}`} />
