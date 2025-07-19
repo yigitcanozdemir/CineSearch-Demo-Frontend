@@ -1,5 +1,4 @@
-// app/api/recommendations/route.ts
-import { NextRequest, NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { Client } from "@gradio/client"
 
 export async function POST(req: NextRequest) {
@@ -13,18 +12,31 @@ export async function POST(req: NextRequest) {
     const client = await Client.connect("http://localhost:7860/")
     const result = await client.predict("/predict", { message: query })
 
-    const recommendations = result.data || []
+    const resultArray = result.data || []
 
+    const backendData = Array.isArray(resultArray) ? resultArray[0] : {}
+
+    const recommendations = backendData.recommendations || []
+    const promptTitle = backendData.prompt_title || ""
     return NextResponse.json({
       success: true,
-      data: recommendations,
+      data: {
+        recommendations: recommendations,
+        prompt_title: promptTitle,
+      },
       count: recommendations.length,
     })
   } catch (error: any) {
-    return NextResponse.json({
-      success: false,
-      error: error.message || "Unknown error",
-      data: [],
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message || "Unknown error",
+        data: {
+          recommendations: [],
+          prompt_title: "",
+        },
+      },
+      { status: 500 },
+    )
   }
 }

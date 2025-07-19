@@ -214,8 +214,23 @@ const createScrollbarStyles = (theme: typeof themes.dark) => `
   to { opacity: 1; transform: scale(1); }
 }
 
+@keyframes slideInFromBottom {
+    from { 
+      opacity: 0; 
+      transform: translateY(50px) scale(0.9);
+    }
+    to { 
+      opacity: 1; 
+      transform: translateY(0) scale(1);
+    }
+  }
+
 .animate-in {
   animation: fadeIn 0.2s ease-out;
+
+
+.slide-in-from-bottom-8 {
+    animation: slideInFromBottom 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 `
 
@@ -247,17 +262,22 @@ interface ApiResponse {
   overview: string
   final_score: string
   genre_score: string
+  country_of_origin: string
 }
 
 interface NextApiResponse {
   success: boolean
-  data: ApiResponse[][]
+  data: {
+    recommendations: ApiResponse[]
+    prompt_title: string
+  }
   count: number
   error?: string
 }
 
 interface MovieCardProps {
   movie: Movie
+  index?: number
 }
 
 interface Session {
@@ -265,6 +285,7 @@ interface Session {
   query: string
   results: Movie[]
   title: string
+  isStreaming?: boolean
 }
 
 const typeMap: Record<string, string> = {
@@ -273,6 +294,39 @@ const typeMap: Record<string, string> = {
   tvMiniSeries: "TV Mini Series",
   tvMovie: "TV Movie",
   video: "Video Movie",
+}
+
+
+
+function StreamingTitle({
+  finalTitle,
+  onComplete,
+}: {
+  finalTitle: string
+  onComplete?: () => void
+}) {
+  const [displayedTitle, setDisplayedTitle] = useState("")
+  const [currentIndex, setCurrentIndex] = useState(0)
+
+  useEffect(() => {
+    if (currentIndex < finalTitle.length) {
+      const timer = setTimeout(() => {
+        setDisplayedTitle((prev) => prev + finalTitle[currentIndex])
+        setCurrentIndex((prev) => prev + 1)
+      }, 50) // Adjust speed here (lower = faster)
+
+      return () => clearTimeout(timer)
+    } else if (onComplete) {
+      onComplete()
+    }
+  }, [currentIndex, finalTitle, onComplete])
+
+  return (
+    <span>
+      {displayedTitle}
+      {currentIndex < finalTitle.length && <span className="animate-pulse">|</span>}
+    </span>
+  )
 }
 
 function IMDbIcon({ className }: { className?: string }) {
@@ -289,7 +343,7 @@ function IMDbIcon({ className }: { className?: string }) {
   )
 }
 
-function MovieCard({ movie }: MovieCardProps) {
+function MovieCard({ movie, index = 0 }: MovieCardProps & { index?: number }) {
   const [modalOpen, setModalOpen] = useState(false)
   const { currentTheme } = useTheme()
 
@@ -297,9 +351,13 @@ function MovieCard({ movie }: MovieCardProps) {
     <>
       <div
         onClick={() => setModalOpen(true)}
-        className="group relative cursor-pointer transition-transform duration-300 hover:scale-105"
+        className={`group relative cursor-pointer transition-all duration-500 hover:scale-105 animate-in fade-in-0 slide-in-from-bottom-8`}
+        style={{
+          animationDelay: `${index * 50}ms`,
+          animationFillMode: "both",
+        }}
       >
-        <div className={`relative overflow-hidden rounded-lg ${currentTheme.tertiary} shadow-lg`}>
+        <div className={`relative overflow-hidden rounded-lg ${currentTheme.tertiary} shadow-lg transform transition-all duration-300`}>
           <img
             src={movie.thumbnail || "/placeholder.svg"}
             alt={movie.title}
@@ -356,7 +414,7 @@ function MovieCard({ movie }: MovieCardProps) {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className={`${currentTheme.secondary} rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl`}
+            className={`${currentTheme.secondary} rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in fade-in-0 zoom-in-95 duration-300`}
           >
             <div className={`flex justify-between items-start p-6 border-b ${currentTheme.borderLight}`}>
               <h2 className={`text-2xl font-bold ${currentTheme.text} pr-4`}>{movie.title}</h2>
@@ -703,6 +761,7 @@ function SessionItem({
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(session.title)
   const [showActions, setShowActions] = useState(false)
+  const [isStreaming, setIsStreaming] = useState(session.isStreaming || false)
 
   const handleSave = () => {
     if (editTitle.trim() && editTitle !== session.title) {
@@ -759,12 +818,16 @@ function SessionItem({
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
             <div className={`truncate text-sm ${currentTheme.text}`} title={session.title}>
-              {session.title}
+              {isStreaming ? (
+                <StreamingTitle finalTitle={session.title} onComplete={() => setIsStreaming(false)} />
+              ) : (
+                session.title
+              )}
             </div>
             <div className={`text-xs ${currentTheme.textMuted} mt-1`}>{session.results.length} results</div>
           </div>
 
-          {showActions && !isEditing && (
+          {showActions && !isEditing && !isStreaming && (
             <div className="flex items-center gap-1 ml-2" onClick={(e) => e.stopPropagation()}>
               <Tooltip content="Rename chat" side="top">
                 <button
@@ -885,11 +948,13 @@ export default function MovieRecommendationApp() {
         throw new Error(result.error || "API request failed")
       }
 
-      const recommendations = result.data || []
-      const innerData = Array.isArray(recommendations[0]) ? recommendations[0] : []
-
-      const moviesFromApi: Movie[] = Array.isArray(innerData)
-        ? innerData.map((item, index) => ({
+      const recommendations = result.data?.recommendations || []
+      const promptTitle = result.data?.prompt_title || generateSessionTitle(query)
+      console.log("Recommendations:", recommendations) 
+      console.log("PromptTitle:", promptTitle) 
+      console.log
+      const moviesFromApi: Movie[] = Array.isArray(recommendations)
+        ? recommendations.map((item, index) => ({
             id: index,
             title: item.title || `Movie ${index + 1}`,
             description: item.overview || "No description available.",
@@ -909,12 +974,12 @@ export default function MovieRecommendationApp() {
 
       setMovies(moviesFromApi)
 
-      const sessionTitle = generateSessionTitle(query)
       const newSession: Session = {
         id: Date.now(),
         query,
         results: moviesFromApi,
-        title: sessionTitle,
+        title: promptTitle,
+        isStreaming: true,
       }
 
       setSessions((prev) => [newSession, ...prev])
@@ -1033,8 +1098,8 @@ export default function MovieRecommendationApp() {
                   </div>
                 ) : movies.length > 0 ? (
                   <div className="grid grid-cols-10 gap-4">
-                    {movies.slice(0, 40).map((movie) => (
-                      <MovieCard key={movie.id} movie={movie} />
+                  {movies.slice(0, 40).map((movie, index) => (
+                    <MovieCard key={movie.id} movie={movie} index={index}/>
                     ))}
                   </div>
                 ) : (
