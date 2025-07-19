@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const client = await Client.connect("http://localhost:7860/")
+    const client = await Client.connect("https://yigitcanozdemir-cinesearch-demo-backend.hf.space")
     const result = await client.predict("/predict", { message: query })
 
     const resultArray = result.data || []
