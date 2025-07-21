@@ -557,10 +557,10 @@ function HowToUseModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div
-        className={`${currentTheme.secondary} rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden border ${currentTheme.border}`}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div
+      className={`${currentTheme.secondary} rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col overflow-hidden border ${currentTheme.border}`}
+      onClick={(e) => e.stopPropagation()}
+    >
         {/* Header */}
         <div className={`p-6 border-b ${currentTheme.borderLight}`}>
           <div className="flex items-center justify-between">
@@ -571,10 +571,7 @@ function HowToUseModal({
                 </div>
               </div>
               <div>
-                <h3 className={`text-xl font-semibold ${currentTheme.text}`}>How to Use Movie Recommender</h3>
-                <p className={`text-sm ${currentTheme.textMuted} mt-1`}>
-                  Get personalized movie and TV show recommendations
-                </p>
+                <h3 className={`text-xl font-semibold ${currentTheme.text}`}>How to Use Recommender</h3>
               </div>
             </div>
             <button
@@ -610,41 +607,22 @@ function HowToUseModal({
               </h4>
               <div className={`${currentTheme.textSecondary} space-y-2`}>
                 <p>
-                  • <strong>Smart Recommendations:</strong> AI-powered suggestions based on your preferences
+                  • <strong>Era-Based Filtering:</strong> Search by specific time periods like "80s action movies" or "classic 70s thrillers".
                 </p>
                 <p>
-                  • <strong>Detailed Information:</strong> View ratings, year, duration, genres, and descriptions
+                  • <strong>Region-Based Filtering:</strong> Get results tailored to or excluding specific regions (e.g., "European detective films", "Nordic noir", or "Japanese anime" "Turkish television drama").
                 </p>
                 <p>
-                  • <strong>IMDb Integration:</strong> Direct links to IMDb pages for more details
+                  • <strong>Quality Tags:</strong> Filter by content types such as "mainstream", "cult", "niche", "popular", "classic", or "legendary".
                 </p>
                 <p>
-                  • <strong>Chat History:</strong> Save and revisit your previous searches
+                  • <strong>Negative Theme Filtering:</strong> Exclude unwanted elements from your search. For example, "space movies without aliens".
                 </p>
                 <p>
-                  • <strong>Dark/Light Mode:</strong> Choose your preferred theme
-                </p>
-              </div>
-            </div>
-
-            {/* Chat Management */}
-            <div>
-              <h4 className={`text-lg font-semibold ${currentTheme.text} mb-3 flex items-center gap-2`}>
-                <Edit2 className="w-5 h-5" />
-                Managing Your Chats
-              </h4>
-              <div className={`${currentTheme.textSecondary} space-y-2`}>
+                  • <strong>Franchise-Aware Suggestions:</strong> Get recommendations based on major franchises like Marvel, DC, Harry Potter, or Star Wars etc. or discover similar universes.
+                </p>  
                 <p>
-                  • <strong>New Chat:</strong> Click "New Chat" to start a fresh conversation
-                </p>
-                <p>
-                  • <strong>Rename:</strong> Hover over any chat and click the edit icon to rename it
-                </p>
-                <p>
-                  • <strong>Delete:</strong> Hover over any chat and click the trash icon to delete it
-                </p>
-                <p>
-                  • <strong>Switch Chats:</strong> Click on any chat in the sidebar to view its results
+                  • <strong>Duration-Based Filtering:</strong> Search based on runtime short or long movies, or TV series with short or long episodes.
                 </p>
               </div>
             </div>
@@ -658,7 +636,7 @@ function HowToUseModal({
               <div className={`${currentTheme.textSecondary} space-y-2`}>
                 <p>• Be specific about genres, time periods, or themes for better results</p>
                 <p>• Try different phrasings if you don't get the results you want</p>
-                <p>• Click on movie posters to view detailed information and trailers</p>
+                <p>• Click on movie posters to view detailed information</p>
                 <p>• Use the IMDb links to read reviews and find more information</p>
               </div>
             </div>
@@ -838,7 +816,9 @@ function SessionItem({
                 session.title
               )}
             </div>
-            <div className={`text-xs ${currentTheme.textMuted} mt-1`}>{session.results.length} results</div>
+            <div className={`text-xs ${currentTheme.textMuted} mt-1`} style={{visibility: 'hidden'}}>
+            placeholder
+            </div>
           </div>
 
           {showActions && !isEditing && !isStreaming && (
