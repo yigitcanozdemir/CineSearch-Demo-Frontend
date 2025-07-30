@@ -636,7 +636,7 @@ function HowToUseModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
     <div
-      className={`${currentTheme.primary} rounded-lg shadow-xl ${isMobile ? "max-w-full w-full max-h-[95vh]" : "max-w-2xl w-full max-h-[80vh]"} overflow-hidden border ${currentTheme.border}`}
+      className={`${currentTheme.secondary} rounded-lg shadow-xl ${isMobile ? "max-w-full w-full max-h-[95vh]" : "max-w-2xl w-full max-h-[80vh]"} overflow-hidden border ${currentTheme.border}`}
       onClick={(e) => e.stopPropagation()}
     >
         {/* Header */}
