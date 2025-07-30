@@ -1260,7 +1260,13 @@ export default function MovieRecommendationApp() {
           </div>
 
           {/* Chat input */}
-          <div   className={`fixed bottom-2 ${isMobile ? "left-0 right-0 px-3" : "left-20 right-0 px-4"} z-10`}
+          <div className={`fixed bottom-2 ${
+            isMobile 
+              ? "left-0 right-0 px-3" 
+              : sidebarOpen 
+                ? "left-[18rem] right-0 px-4"  // 18rem = w-72 (sidebar width when open)
+                : "left-20 right-0 px-4"       // left-20 = w-16 (sidebar width when closed)
+          } z-10 transition-all duration-300`}
                   style={isMobile ? { bottom: `calc(0.5rem + env(safe-area-inset-bottom))` } : {}}>
             <div
               className={`mx-auto ${isMobile ? "px-0" : "px-4"} transform transition-all duration-300 ${isMobile ? "max-w-full" : containerClasses}`}
