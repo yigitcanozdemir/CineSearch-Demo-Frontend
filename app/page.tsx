@@ -1112,7 +1112,7 @@ export default function MovieRecommendationApp() {
             >
               <Menu className="h-6 w-6" />
             </button>
-            <h1 className="text-lg font-bold">Movie Recommender</h1>
+            <h1 className="text-lg font-bold">Cine Search</h1>
             <ThemeToggle />
           </div>
         )}
