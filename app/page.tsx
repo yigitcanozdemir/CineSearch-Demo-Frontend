@@ -1260,7 +1260,8 @@ export default function MovieRecommendationApp() {
           </div>
 
           {/* Chat input */}
-          <div className={`absolute bottom-2 ${isMobile ? "left-0 right-0 px-3" : "left-20 right-0 px-4"} z-10`}>
+          <div   className={`fixed bottom-2 ${isMobile ? "left-0 right-0 px-3" : "left-20 right-0 px-4"} z-10`}
+                  style={isMobile ? { bottom: `calc(0.5rem + env(safe-area-inset-bottom))` } : {}}>
             <div
               className={`mx-auto ${isMobile ? "px-0" : "px-4"} transform transition-all duration-300 ${isMobile ? "max-w-full" : containerClasses}`}
             >
@@ -1271,7 +1272,7 @@ export default function MovieRecommendationApp() {
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && handleSubmit(e)}
                   placeholder="Ask for recommendations..."
-                  className={`w-full ${currentTheme.secondary} ${currentTheme.text} rounded-lg pl-10 pr-14 ${isMobile ? "py-2 text-base" : "py-5 text-lg"} shadow-sm focus:outline-none transition-all`}
+                  className={`w-full ${currentTheme.secondary} ${currentTheme.text} rounded-lg pl-10 pr-14 ${isMobile ? "py-2 text-base" : "py-5 text-lg"} shadow-sm focus:outline-none transition-colors`}
                   disabled={loading}
                 />
                 <button
