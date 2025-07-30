@@ -1127,7 +1127,7 @@ export default function MovieRecommendationApp() {
         >
           {/* Sidebar Header */}
           {!isMobile && (
-          <div className={`p-4 flex items-center justify-between border-b ${currentTheme.borderLight} flex-shrink-0`}>
+          <div className={`p-4 flex items-center justify-between border-b ${currentTheme.borderLight} flex-shrink-0 transition-colors duration-300`}>
             <span className="text-lg font-bold">{sidebarOpen ? "Chats" : ""}</span>
             <div className="flex items-center gap-2">
               {sidebarOpen && <ThemeToggle />}
@@ -1144,7 +1144,7 @@ export default function MovieRecommendationApp() {
 
           {/* Mobile Sidebar Header */}
           {isMobile && (
-            <div className={`p-4 flex items-center justify-between border-b ${currentTheme.borderLight} flex-shrink-0`}>
+            <div className={`p-4 flex items-center justify-between border-b ${currentTheme.borderLight} flex-shrink-0 transition-colors duration-300`}>
               <span className="text-lg font-bold">Chats</span>
               <button
                 onClick={() => setSidebarOpen(false)}
@@ -1158,7 +1158,7 @@ export default function MovieRecommendationApp() {
 
           {/* How to Use Button */}
           {(sidebarOpen || isMobile) && (
-            <div className="p-4 border-b border-gray-700 space-y-2">
+            <div className={`p-4 border-b ${currentTheme.borderLight} space-y-2 transition-colors duration-300`}>
               <button
                 onClick={() => {
                   setHowToUseModalOpen(true)
