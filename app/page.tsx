@@ -49,7 +49,7 @@ const themes = {
   light: {
     name: "Light",
     primary: "bg-white",
-    primaryColorValue: "#00000099",
+    primaryColorValue: "#ffffff",
     secondary: "bg-gray-50",
     tertiary: "bg-gray-100",
     accent: "bg-blue-600",
@@ -207,10 +207,12 @@ const createScrollbarStyles = (theme: typeof themes.dark) => `
 .custom-scrollbar::-webkit-scrollbar-track {
   background: ${theme.scrollbar.track};
   border-radius: 3px;
+  transition: background-color 0.5s ease;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: ${theme.scrollbar.thumb};
   border-radius: 3px;
+  transition: background-color 0.5s ease;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: ${theme.scrollbar.thumbHover};
@@ -221,10 +223,12 @@ const createScrollbarStyles = (theme: typeof themes.dark) => `
 .custom-scrollbar-main::-webkit-scrollbar-track {
   background: ${theme.scrollbar.track};
   border-radius: 4px;
+  transition: background-color 0.5s ease;
 }
 .custom-scrollbar-main::-webkit-scrollbar-thumb {
   background: ${theme.scrollbar.thumb};
   border-radius: 4px;
+  transition: background-color 0.5s ease;
 }
 .custom-scrollbar-main::-webkit-scrollbar-thumb:hover {
   background: ${theme.scrollbar.thumbHover};
@@ -849,7 +853,7 @@ function SessionItem({
 
   return (
     <div
-      className={`group relative p-3 rounded-lg cursor-pointer border transition-colors duration-300 ${
+      className={`group relative p-3 rounded-lg cursor-pointer border transition-colors duration-500 ${
         isActive ? `${currentTheme.tertiary} ${currentTheme.border}` : `${currentTheme.hover} border-transparent`
       }`}
       onMouseEnter={() => !isMobile && setShowActions(true)}
@@ -925,10 +929,13 @@ function SessionItem({
 
 export default function MovieRecommendationApp() {
   const [theme, setTheme] = useState<keyof typeof themes>("dark")
+  const [hasHydrated, setHasHydrated] = useState(false)
   const [query, setQuery] = useState("")
   const [messages, setMessages] = useState<Array<{ type: "user" | "system"; content: string }>>([])
   const [movies, setMovies] = useState<Movie[]>([])
   const [loading, setLoading] = useState(false)
+  const [isWarming, setIsWarming] = useState(true)
+  const [warmupStatus, setWarmupStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [sessions, setSessions] = useState<Session[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -946,6 +953,96 @@ export default function MovieRecommendationApp() {
       setSidebarOpen(true)
     }
   }, [isMobile])
+
+  useEffect(() => {
+    if (typeof sessionStorage !== "undefined") {
+      const storedTheme = sessionStorage.getItem("cine-theme")
+      if (storedTheme === "light" || storedTheme === "dark") {
+        setTheme(storedTheme)
+      }
+
+      const storedSessions = sessionStorage.getItem("cine-sessions")
+      const storedActiveId = sessionStorage.getItem("cine-active-session")
+      if (storedSessions) {
+        try {
+          const parsed: Session[] = JSON.parse(storedSessions)
+          setSessions(parsed)
+          if (storedActiveId) {
+            const activeIdNum = Number(storedActiveId)
+            setActiveSessionId(isNaN(activeIdNum) ? null : activeIdNum)
+            const activeSession = parsed.find((s) => s.id === activeIdNum)
+            if (activeSession) {
+              setMovies(activeSession.results)
+            }
+          }
+        } catch (err) {
+          console.error("Failed to parse stored sessions", err)
+        }
+      }
+    }
+    setHasHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    if (typeof sessionStorage !== "undefined") {
+      sessionStorage.setItem("cine-theme", theme)
+    }
+  }, [theme])
+
+  useEffect(() => {
+    if (typeof sessionStorage === "undefined") return
+    if (sessions.length > 0) {
+      sessionStorage.setItem("cine-sessions", JSON.stringify(sessions))
+    } else {
+      sessionStorage.removeItem("cine-sessions")
+    }
+
+    if (activeSessionId !== null) {
+      sessionStorage.setItem("cine-active-session", String(activeSessionId))
+    } else {
+      sessionStorage.removeItem("cine-active-session")
+    }
+  }, [sessions, activeSessionId])
+
+  useEffect(() => {
+    const runWarmup = async () => {
+      const todayKey = new Date().toISOString().slice(0, 10)
+      const storageKey = "cine-warmup-date"
+      const lastWarmup = typeof window !== "undefined" ? localStorage.getItem(storageKey) : null
+
+      if (lastWarmup === todayKey) {
+        setIsWarming(false)
+        return
+      }
+
+      const controller = new AbortController()
+      const timeout = setTimeout(() => {
+        controller.abort()
+        setWarmupStatus("Backend may still be cold; first response could be slower.")
+        setIsWarming(false)
+      }, 25000)
+
+      try {
+        setWarmupStatus("Warming up the model…")
+        await fetch("/api/recommendations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: "Warmup ping: recommend a popular movie." }),
+          signal: controller.signal,
+        })
+        localStorage.setItem(storageKey, todayKey)
+        setWarmupStatus(null)
+      } catch (warmupError) {
+        console.error("Warmup error:", warmupError)
+        setWarmupStatus("Backend may still be cold; first response could be slower.")
+      } finally {
+        clearTimeout(timeout)
+        setIsWarming(false)
+      }
+    }
+
+    runWarmup()
+  }, [])
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark")
@@ -1004,7 +1101,7 @@ export default function MovieRecommendationApp() {
 
   const handleSubmit = async (e: React.FormEvent | React.MouseEvent) => {
     e.preventDefault()
-    if (!query.trim() || loading) return
+    if (!query.trim() || loading || isWarming) return
 
     setMessages((prev) => [...prev, { type: "user", content: query }])
     setLoading(true)
@@ -1093,10 +1190,16 @@ export default function MovieRecommendationApp() {
     }
   }
 
+  const colorTransition = hasHydrated ? "transition-colors duration-500" : "transition-none"
+
   return (
     <ThemeContext.Provider value={{ theme, setTheme, currentTheme, toggleTheme }}>
       <div
-        className={`flex h-screen ${currentTheme.primary} ${currentTheme.text} transition-colors duration-300 ${isMobile ? "flex-col" : ""}`}
+        className={`flex h-screen ${currentTheme.primary} ${currentTheme.text} ${colorTransition} ${isMobile ? "flex-col" : ""}`}
+        style={{
+          backgroundColor: currentTheme.primaryColorValue,
+          visibility: hasHydrated ? "visible" : "hidden",
+        }}
       >
         <style dangerouslySetInnerHTML={{ __html: createScrollbarStyles(currentTheme) }} />
 
@@ -1104,11 +1207,11 @@ export default function MovieRecommendationApp() {
         {/* Mobile Header */}
         {isMobile && (
           <div
-            className={`${currentTheme.secondary} border-b ${currentTheme.borderLight} p-4 flex items-center justify-between`}
+            className={`${currentTheme.secondary} border-b ${currentTheme.borderLight} p-4 flex items-center justify-between ${colorTransition}`}
           >
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className={`${currentTheme.textMuted} ${currentTheme.text} p-2 rounded-lg ${currentTheme.hover} transition-colors`}
+              className={`${currentTheme.textMuted} ${currentTheme.text} p-2 rounded-lg ${currentTheme.hover} ${colorTransition}`}
             >
               <Menu className="h-6 w-6" />
             </button>
@@ -1121,15 +1224,15 @@ export default function MovieRecommendationApp() {
         <div
           className={`${
             isMobile
-              ? `fixed inset-y-0 left-0 z-50 w-80 transform transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`
-              : `${sidebarOpen ? "w-72" : "w-16"} transition-all duration-300`
-          } ${currentTheme.secondary} border-r ${currentTheme.borderLight} ${isMobile ? "" : "rounded-r-3xl"} flex flex-col overflow-hidden shadow-xl`}
+              ? `fixed inset-y-0 left-0 z-50 w-80 transform transition-transform duration-500 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`
+              : `${sidebarOpen ? "w-72" : "w-16"} transition-all duration-500`
+          } ${currentTheme.secondary} border-r ${currentTheme.borderLight} ${isMobile ? "" : "rounded-r-3xl"} flex flex-col overflow-hidden shadow-xl ${colorTransition}`}
         >
           {/* Sidebar Header */}
           {!isMobile && (
-          <div className={`p-4 flex items-center justify-between border-b ${currentTheme.borderLight} flex-shrink-0 transition-colors duration-300`}>
-            <span className="text-lg font-bold">{sidebarOpen ? "Chats" : ""}</span>
-            <div className="flex items-center gap-2">
+            <div className={`p-4 flex items-center justify-between border-b ${currentTheme.borderLight} flex-shrink-0 ${colorTransition}`}>
+              <span className="text-lg font-bold">{sidebarOpen ? "Chats" : ""}</span>
+              <div className="flex items-center gap-2">
               {sidebarOpen && <ThemeToggle />}
               <Tooltip content={sidebarOpen ? "Close sidebar" : "Open sidebar"} side="right">
                 <button
@@ -1144,7 +1247,7 @@ export default function MovieRecommendationApp() {
 
           {/* Mobile Sidebar Header */}
           {isMobile && (
-            <div className={`p-4 flex items-center justify-between border-b ${currentTheme.borderLight} flex-shrink-0 transition-colors duration-300`}>
+            <div className={`p-4 flex items-center justify-between border-b ${currentTheme.borderLight} flex-shrink-0 ${colorTransition}`}>
               <span className="text-lg font-bold">Chats</span>
               <button
                 onClick={() => setSidebarOpen(false)}
@@ -1158,20 +1261,20 @@ export default function MovieRecommendationApp() {
 
           {/* How to Use Button */}
           {(sidebarOpen || isMobile) && (
-            <div className={`p-4 border-b ${currentTheme.borderLight} space-y-2 transition-colors duration-300`}>
+            <div className={`p-4 border-b ${currentTheme.borderLight} space-y-2 ${colorTransition}`}>
               <button
                 onClick={() => {
                   setHowToUseModalOpen(true)
                   if (isMobile) setSidebarOpen(false)
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg ${currentTheme.hover} transition-colors ${currentTheme.textSecondary} text-sm mb-3`}
-              >
-                <HelpCircle className="h-4 w-4" />
-                <span>How to use?</span>
+                  className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg ${currentTheme.hover} ${colorTransition} ${currentTheme.textSecondary} text-sm mb-3`}
+                >
+                  <HelpCircle className="h-4 w-4" />
+                  <span>How to use?</span>
               </button>
               <button
                 onClick={createNewChat}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg ${currentTheme.hover} transition-colors ${currentTheme.text}`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg ${currentTheme.hover} ${colorTransition} ${currentTheme.text}`}
               >
                 <Plus className="h-4 w-4" />
                 <span>New Chat</span>
@@ -1180,7 +1283,7 @@ export default function MovieRecommendationApp() {
           )}
 
           {/* Sidebar List */}
-          <div className={`flex-1 overflow-y-auto p-4 custom-scrollbar ${sidebarOpen || isMobile ? "" : "hidden"}`}>
+          <div className={`flex-1 overflow-y-auto p-4 custom-scrollbar ${sidebarOpen || isMobile ? "" : "hidden"} ${colorTransition}`}>
             <div className="space-y-2">
               {sessions.map((session) => (
                 <SessionItem
@@ -1207,6 +1310,19 @@ export default function MovieRecommendationApp() {
 
         {/* Main Content */}
         <div className={`flex flex-col flex-1 h-full ${isMobile ? "min-h-0" : ""}`}>
+          {(isWarming || warmupStatus) && (
+            <div className="mx-auto max-w-7xl p-4">
+              <div
+                className={`${currentTheme.secondary} border ${currentTheme.borderLight} rounded-lg p-4 flex items-center gap-2`}
+              >
+                <Clock className="h-5 w-5" />
+                <span className={currentTheme.textMuted}>
+                  {warmupStatus || "Warming up the model…"}
+                </span>
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="mx-auto max-w-7xl p-4">
               <div
@@ -1264,8 +1380,8 @@ export default function MovieRecommendationApp() {
             isMobile 
               ? "left-0 right-0 px-3" 
               : sidebarOpen 
-                ? "left-[18rem] right-0 px-4"  // 18rem = w-72 (sidebar width when open)
-                : "left-20 right-0 px-4"       // left-20 = w-16 (sidebar width when closed)
+                ? "left-[18rem] right-0 px-4"  
+                : "left-20 right-0 px-4"      
           } z-10 transition-all duration-300`}
                   style={isMobile ? { bottom: `calc(0.5rem + env(safe-area-inset-bottom))` } : {}}>
             <div
@@ -1277,13 +1393,13 @@ export default function MovieRecommendationApp() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && handleSubmit(e)}
-                  placeholder="Ask for recommendations..."
-                  className={`w-full ${currentTheme.secondary} ${currentTheme.text} rounded-lg pl-10 pr-14 ${isMobile ? "py-2 text-base" : "py-5 text-lg"} shadow-sm focus:outline-none transition-colors`}
-                  disabled={loading}
+                  placeholder={isWarming ? "Warming up the model..." : "Ask for recommendations..."}
+                  className={`w-full ${currentTheme.secondary} ${currentTheme.text} rounded-lg pl-10 pr-14 ${isMobile ? "py-2 text-base" : "py-5 text-lg"} shadow-sm focus:outline-none transition-colors border ${currentTheme.borderLight} ${theme === "light" ? "bg-white" : ""}`}
+                  disabled={loading || isWarming}
                 />
                 <button
                   onClick={handleSubmit}
-                  disabled={!query.trim() || loading}
+                  disabled={!query.trim() || loading || isWarming}
                   className={`${currentTheme.accent} ${currentTheme.accentHover} disabled:opacity-50 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-colors shadow-lg absolute right-2 top-1/2 -translate-y-1/2`}
                 >
                   {loading ? (
